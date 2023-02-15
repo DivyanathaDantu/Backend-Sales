@@ -1,9 +1,7 @@
 import streamlit as st
-import pandas as pd
 
 
-def displayMetrics():
-    df = pd.read_csv("Sales.csv")
+def displayMetrics(df):
     selectedYear = st.selectbox("Select Year", df["Year"].unique()[::-1])
     df_present = df[df["Year"] == selectedYear]
     df_prev = df[df["Year"] == (selectedYear - 1)]

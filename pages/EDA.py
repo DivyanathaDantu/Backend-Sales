@@ -1,29 +1,17 @@
-import streamlit as st
-import pandas as pd
-from streamlit_pandas_profiling import st_profile_report
-import os
 import matplotlib.pyplot as plt
-import numpy as np
-from PIL import Image
-import statsmodels.api as sm
-
 import plotly.express as px
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import mean_squared_error
-from sklearn.metrics import mean_absolute_percentage_error
-from sklearn.metrics import max_error
-import seaborn as sns
-import matplotlib.pyplot as plt
-from MyUtils.Metrics import displayMetrics
+import streamlit as st
+
 from MyUtils.HideStDefaults import hideNavBar
+from MyUtils.Metrics import displayMetrics
+from MyUtils.searchAndSelectFile import selectDataset
 
 hideNavBar()
 
+df = selectDataset()
+
 st.title("Sales Performance Dashboard")
-displayMetrics()
-df = pd.read_csv("Sales.csv")
+displayMetrics(df)
 y = [2015, 2016]
 q = [1, 2]
 m = ["January", "February"]
