@@ -9,3 +9,4 @@ pillow~=9.0.1
 scikit-learn~=1.0.2
 firebase-admin~=6.1.0
 python-dotenv~=0.21.1
+lime~=0.2.0.1
