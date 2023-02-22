@@ -5,9 +5,8 @@ from MyUtils.Firebase import get_firestore_files
 
 
 def selectDataset():
-    search = st.text_input("Search Your Dataset")
 
-    files = get_firestore_files(search)
+    files = get_firestore_files("")
     search_files = {}
     for doc in files:
         # print(f'{doc.id} => {doc.to_dict()}')
