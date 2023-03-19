@@ -8,3 +8,4 @@ font = "sans serif"
 
 [global]
 showWarningOnDirectExecution = true
+serverAddress = "streamlit.metriverse.systems"
