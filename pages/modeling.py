@@ -18,7 +18,7 @@ hideNavBar()
 
 
 df = selectDataset()
-
+#df=pd.read_csv('Telco_customer_churn.csv')
 chosen_target_x = st.multiselect(label="Choose Independant  variable", options=df.columns)
 chosen_target_y = st.selectbox(label="Choose Dependant  variable",
                                    options=(df.columns).insert(0, "Choose an option"))
@@ -60,6 +60,7 @@ if chosen_target_y != 'Choose an option':
     X_list=list(X.columns)
     fi=[X_list,r_list]
     df_fi=pd.DataFrame (fi).transpose()
+    
     df_fi.columns = ['Feature', 'Importance']
     
     fig_fi = px.bar(df_fi,

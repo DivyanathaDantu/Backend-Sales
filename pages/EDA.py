@@ -117,6 +117,7 @@ filtered_df_subcategory=filtered_df.groupby('Sub Category').agg({'Quantity':sum}
 with col9:
     fig_filtered_df_subcategory = px.line(filtered_df_subcategory,
                      x="Sub Category", y="Quantity",
-                     template="plotly_white", title="Sub Category wise Orders",width=400, height=500,color_discrete_sequence=px.colors.sequential.Redor)
+                     template="plotly_white", title="Sub Category wise Orders",width=400, height=500)
     fig_filtered_df_subcategory .update_layout(title_x=0.28)
+    fig_filtered_df_subcategory.update_traces(line_color='#B2182B')
     st.plotly_chart(fig_filtered_df_subcategory)

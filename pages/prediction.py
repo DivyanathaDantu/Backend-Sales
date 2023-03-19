@@ -1,21 +1,29 @@
 import pandas as pd
 import streamlit as st
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import max_error
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_absolute_percentage_error
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import precision_score
+from sklearn.metrics import f1_score
+from sklearn.metrics import recall_score
+import numpy as np
+
 
 from MyUtils.HideStDefaults import hideNavBar
-from MyUtils.searchAndSelectFile import selectDataset
+from MyUtils.searchAndSelectFile import selectDataset_with_msg
 
 hideNavBar()
+#df=pd.read_csv('train_data.csv')
+#df_test=pd.read_csv('test data.csv')
 
-df = pd.read_csv("trainingdata.csv")
-st.title("Upload Your test Dataset")
-df_testdata = selectDataset()
+df = selectDataset_with_msg("Select your Training dataset")
+df_test = selectDataset_with_msg("Select your Test dataset")
+
 
 chosen_main_model = st.selectbox('Select Model Category',
                                  ["Choose an option", "Classification", "Regression", "Time Series"])
@@ -23,20 +31,77 @@ chosen_main_model = st.selectbox('Select Model Category',
 if chosen_main_model == "Classification":
     chosen_target_x = st.multiselect(label="Choose Independant  variable", options=df.columns)
     # d= st.selectbox(label = "Choose Dependant  variable", options = df["Total sales"])
-    chosen_target_y = st.selectbox(label="Choose Dependant  variable",
-                                   options=(df.columns).insert(0, "Choose an option"))
-    if (chosen_target_y != "Choose an option") and chosen_target_x:
-        chosen_class_model = st.selectbox('Select the Model',
-                                          ["Choose an option", "Random Forest Classification", "KNN", "XGBoost",
-                                           "Decision Tree"])
-        if chosen_class_model == "Random Forest Classification":
-            st.write("rendom forest regression")
-        if chosen_class_model == "KNN":
-            st.write("knn")
-        if chosen_class_model == "XGBoost":
-            st.write("XGBoost")
-        if chosen_class_model == "Decision Tree":
-            st.write("decision tree")
+    chosen_target_y = st.selectbox(label="Choose Dependant  variable", options=df.columns)
+    chosen_class_model = st.selectbox('Select the Model',
+                                      ["Random forest Classification", 
+                                       "XGBoost Classification"])
+    if not chosen_target_y:
+        st.write("Selected the Dependant variable")
+    if not chosen_target_x:
+        st.write("Selected the Independant variable") 
+    else:
+        if chosen_class_model == "Random forest Classification":
+            #st.write("Linear Regression")
+            x = df[chosen_target_x]
+            y = df[chosen_target_y].values.ravel()
+            
+            model = RandomForestClassifier()
+
+            x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+            model.fit(x_train, y_train)
+            y_pred_train=model.predict(x_test)
+            precision = precision_score(y_test , y_pred_train).round(4)
+            f1 = f1_score(y_test , y_pred_train).round(4)
+            recall = recall_score(y_test , y_pred_train).round(4)
+
+            m_values = [precision, f1, recall]
+            m_title = ["Precision", "F1", "Recall"]
+            m = [m_title, m_values]
+            df_m = pd.DataFrame(m).transpose()
+            df_m.columns = ["Metric", "Value"]
+
+            # Display the below table at the bottom of the page
+            st.subheader("Model Performance")
+            st.write(df_m)
+
+            #predicting the output of test data
+
+            x_pred = df_test[chosen_target_x]
+            
+
+            
+            y_pred = model.predict(x_pred)
+            
+
+            
+
+            
+            df_ypred = pd.DataFrame(y_pred, columns=[chosen_target_y])
+            df_download = pd.concat([df_test, df_ypred], axis=1)
+
+            st.subheader("Model Results")
+            st.write(df_download)
+
+            @st.cache_data
+            def convert_df(df1):
+                # IMPORTANT: Cache the conversion to prevent computation on every rerun
+                return df1.to_csv().encode('utf-8')
+
+
+            csv = convert_df(df_download)
+
+            st.download_button(
+                label="Download data as CSV",
+                data=csv,
+                file_name='large_df.csv',
+                mime='text/csv',
+            )
+
+
+
+        if chosen_class_model == "XGBoost Classification":
+            st.write("Logistic Regression")
+            
 
 if chosen_main_model == "Regression":
     chosen_target_x = st.multiselect(label="Choose Independant  variable", options=df.columns)
@@ -82,10 +147,10 @@ if chosen_main_model == "Regression":
         x_4train = df[chosen_target_x]
         y_4train = df[chosen_target_y].values.ravel()
         model.fit(x_4train, y_4train)
-        x_4pred = df_testdata[chosen_target_x]
+        x_4pred = df[chosen_target_x]
         y_4pred = model.predict(x_4pred)
         df_y4pred = pd.DataFrame(y_4pred, columns=[chosen_target_y])
-        df_download = pd.concat([df_testdata, df_y4pred], axis=1)
+        df_download = pd.concat([df_test, df_y4pred], axis=1)
 
         st.subheader("Model Results")
         st.write(df_download)
