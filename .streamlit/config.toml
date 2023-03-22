@@ -9,3 +9,7 @@ font = "sans serif"
 [global]
 showWarningOnDirectExecution = true
 serverAddress = "streamlit.metriverse.systems"
+
+[ui]
+hideTopBar = true
+hideSidebarNav = true

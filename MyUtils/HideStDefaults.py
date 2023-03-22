@@ -7,6 +7,7 @@ def hideNavBar():
     st.markdown(""" <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    section[class="css-163ttbj e1fqkh3o11"] {visibility: hidden;}
-    header[data-testid="stHeader"] {visibility: hidden;}
+    section[data-testid="stSidebar"] {visibility: hidden;}
+    header {visibility: hidden;}
+    div[data-testid="collapsedControl"] {visibility: hidden;}
     </style> """, unsafe_allow_html=True)
