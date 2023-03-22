@@ -26,11 +26,11 @@ from MyUtils.searchAndSelectFile import selectDataset
 hideNavBar()
 
 
-#df_train = selectDataset_with_msg("Select your Training dataset")
-#df_test = selectDataset_with_msg("Select your Test dataset")
+df_train = selectDataset_with_msg("Select your Training dataset")
+df_test = selectDataset_with_msg("Select your Test dataset")
 
-df_train=pd.read_csv('training_data_insights.csv')
-df_test=pd.read_csv('test_data_insights.csv')
+# df_train=pd.read_csv('training_data_insights.csv')
+# df_test=pd.read_csv('test_data_insights.csv')
 
 
 chosen_target_X = st.multiselect(label="Choose Independant  variable", options=df_train.columns)
