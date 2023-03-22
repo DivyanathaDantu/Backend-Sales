@@ -4,3 +4,11 @@ div.css-1wrcr25 egzxvld6 {
     padding: 5% 5% 5% 10%;
     border-radius: 5px;
 }
+
+background_css = """
+<style>
+body {
+background-color: #FFFFFF;
+}
+</style>
+"""

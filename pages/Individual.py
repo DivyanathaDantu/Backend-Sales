@@ -1,191 +1,182 @@
 import pandas as pd
-import streamlit as st
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import max_error
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import mean_absolute_percentage_error
-from sklearn.metrics import mean_squared_error
-from sklearn.metrics import r2_score
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import precision_score
-from sklearn.metrics import f1_score
-from sklearn.metrics import recall_score
 import numpy as np
+import seaborn as sns
+import streamlit as st
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import VotingClassifier
+import plotly.express as px
+import lime
+from lime import lime_tabular
 
 
 from MyUtils.HideStDefaults import hideNavBar
 from MyUtils.searchAndSelectFile import selectDataset_with_msg
 
-hideNavBar()
+hideNavBar()        
 #df=pd.read_csv('train_data.csv')
 #df_test=pd.read_csv('test data.csv')
 
-df = selectDataset_with_msg("Select your Training dataset")
-df_test = selectDataset_with_msg("Select your Test dataset")
 
+col31, col32 = st.columns(2,gap="small")
+with col31: 
+    df_train = selectDataset_with_msg("Select your Training dataset")
+with col32:
+    df_test = selectDataset_with_msg("Select your Test dataset")
 
-chosen_main_model = st.selectbox('Select Model Category',
-                                 ["Choose an option", "Classification", "Regression", "Time Series"])
+col33, col34 = st.columns(2,gap="small")
+with col33:
+    chosen_target_X = st.multiselect(label="Choose Independant  variable", options=df_train.columns)
+with col34:
+    chosen_target_Y = st.selectbox(label="Choose Dependant  variable",
+                                   options=(df_train.columns).insert(0, "Choose an option"))
 
-if chosen_main_model == "Classification":
-    chosen_target_x = st.multiselect(label="Choose Independant  variable", options=df.columns)
-    # d= st.selectbox(label = "Choose Dependant  variable", options = df["Total sales"])
-    chosen_target_y = st.selectbox(label="Choose Dependant  variable", options=df.columns)
-    chosen_class_model = st.selectbox('Select the Model',
-                                      ["Random forest Classification", 
-                                       "XGBoost Classification"])
-    if not chosen_target_y:
-        st.write("Selected the Dependant variable")
-    if not chosen_target_x:
-        st.write("Selected the Independant variable") 
-    else:
-        if chosen_class_model == "Random forest Classification":
-            #st.write("Linear Regression")
-            x = df[chosen_target_x]
-            y = df[chosen_target_y].values.ravel()
-            
-            model = RandomForestClassifier()
+if chosen_target_Y != 'Choose an option':
+    #input  parameters
+    chosen_target_Y=['Churn Value']
+    chosen_target_X=['Tenure Months',
+            'Phone Service',
+    'Multiple Lines',
+    'Internet Service',
+    'Online Security',
+    'Online Backup',
+    'Device Protection',
+    'Tech Support',
+    'Streaming TV',
+    'Streaming Movies',
+    'Contract',
+    'Paperless Billing',
+    'Payment Method',
+    'Monthly Charges']
 
-            x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
-            model.fit(x_train, y_train)
-            y_pred_train=model.predict(x_test)
-            precision = precision_score(y_test , y_pred_train).round(4)
-            f1 = f1_score(y_test , y_pred_train).round(4)
-            recall = recall_score(y_test , y_pred_train).round(4)
+    #Define the ensemble model
+    model_churn=VotingClassifier(estimators=[('LR', LogisticRegression(max_iter=1000)), ('RF', RandomForestClassifier()), ('GB', GradientBoostingClassifier())],
+                            voting='soft')
+    X_train=df_train[chosen_target_X]
+    Y_train=df_train[chosen_target_Y]
+    model_churn.fit(X_train.values,Y_train.values.ravel())
 
-            m_values = [precision, f1, recall]
-            m_title = ["Precision", "F1", "Recall"]
-            m = [m_title, m_values]
-            df_m = pd.DataFrame(m).transpose()
-            df_m.columns = ["Metric", "Value"]
+    #Predicting churn probability
+    df_churn=df_test.copy()
+    df_churn['churn_probability']=np.nan
+    churn_probability_predictions=model_churn.predict_proba((df_churn[chosen_target_X]).values)
+    df_churn['churn_probability']=churn_probability_predictions
 
-            # Display the below table at the bottom of the page
-            st.subheader("Model Performance")
-            st.write(df_m)
+    #Filtering  dataframe based on customer ID
+    queryvariablevalue="0002-ORFBO"
+    condition = (df_churn['CustomerID'] == queryvariablevalue) 
+    df_customer=(df_churn[condition]).copy().reset_index(drop=True)
 
-            #predicting the output of test data
+    #tile 1 - Tenure
+    tenure=(df_customer['Tenure Months'].values)[0]
+    #tile 1 - City
+    city=(df_customer['City'].values)[0]
+    #tile 1 - Annual Revenue
+    annual_revenue=((df_customer['Monthly Charges'].values)[0])*12
+    
 
-            x_pred = df_test[chosen_target_x]
-            
+    col4, col5, col6, = st.columns(3,gap="small")
 
-            
-            y_pred = model.predict(x_pred)
-            
+    with col4:
+        st.metric(
+        label="Tenure of Customer",
+        value=tenure,
+        
+    )
 
-            
+    with col5:
+        st.metric(
+        label="City of Customer",
+        value=city,
+        
+    )
 
-            
-            df_ypred = pd.DataFrame(y_pred, columns=[chosen_target_y])
-            df_download = pd.concat([df_test, df_ypred], axis=1)
+    with col6:
+        st.metric(
+        label="Revenue Generated of Customer Annualy",
+        value=annual_revenue,
+        
+    )
+        
+    
+    col7, col8, col9, = st.columns(3)
 
-            st.subheader("Model Results")
-            st.write(df_download)
+    with col7:
+        #Churn Probability
+        churn_prob=(df_customer['churn_probability'].values)[0]
+        no_churn_prob=(1-churn_prob)
 
-            @st.cache_data
-            def convert_df(df1):
-                # IMPORTANT: Cache the conversion to prevent computation on every rerun
-                return df1.to_csv().encode('utf-8')
+        column=['Churn','Will Nor Churn']
+        prob=[churn_prob,no_churn_prob]
 
+        prob_dict={'Outcome':column,'Probability':prob}
+        df_prob=pd.DataFrame(prob_dict)
 
-            csv = convert_df(df_download)
+        fig_prob= px.pie(df_prob,
+                            names='Outcome', values='Probability',
+                            template="plotly", title="Customer Churn Probability",width=400, height=400,color='Outcome',color_discrete_sequence=px.colors.sequential.RdBu)
+        fig_prob.update_layout( xaxis_title="Factors", yaxis_title="Percentage Contribution to Churn Probability",xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.5)
+        st.plotly_chart(fig_prob) 
 
-            st.download_button(
-                label="Download data as CSV",
-                data=csv,
-                file_name='large_df.csv',
-                mime='text/csv',
-            )
+    with col8:
+        #LIME
+        categorical_features = [i for i, col in enumerate(X_train)
+                                if ((X_train.iloc[[0],[i]].values)[0][0]) <= 1] 
 
-
-
-        if chosen_class_model == "XGBoost Classification":
-            st.write("Logistic Regression")
-            
-
-if chosen_main_model == "Regression":
-    chosen_target_x = st.multiselect(label="Choose Independant  variable", options=df.columns)
-    # d= st.selectbox(label = "Choose Dependant  variable", options = df["Total sales"])
-    chosen_target_y = st.selectbox(label="Choose Dependant  variable", options=df.columns)
-    chosen_class_model = st.selectbox('Select the Model',
-                                      ["Linear Regression", "Logistic Regression", "Random Forest Regressor",
-                                       "XGBoost Regression", "KNN regression"])
-    if chosen_class_model == "Linear Regression":
-        st.write("Linear Regression")
-    if chosen_class_model == "Logistic Regression":
-        st.write("Logistic Regression")
-    if chosen_class_model == "Random Forest Regressor":
-        st.write("Random Forest Regressor")
-        x = df[chosen_target_x]
-        y = df[chosen_target_y].values.ravel()
-
-        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
-        model_train = RandomForestRegressor()
-        model_train.fit(x_train, y_train)
-        y_pred = model_train.predict(x_test)
-        r2 = r2_score(y_test, y_pred).round(4)
-        mae = mean_absolute_error(y_test, y_pred).round(4)
-        mape = (mean_absolute_percentage_error(y_test, y_pred).round(4)) * 100
-        mse = mean_squared_error(y_test, y_pred).round(4)
-        rmse = mean_squared_error(y_test, y_pred, squared=False).round(4)
-        max = max_error(y_test, y_pred).round(4)
-
-        m_values = [r2, mae, mape, mse, rmse, max]
-        m_title = ["R2", "Mean Absolute Error", "Mean Absolute Percentage Error", "Mean Square Error",
-                   "Root Mean Square Error", "Maximum Error"]
-        m = [m_title, m_values]
-        df_m = pd.DataFrame(m).transpose()
-        df_m.columns = ["Metric", "Value"]
-
-        # Display the below table at the bottom of the page
-        st.subheader("Model Performance")
-        st.write(df_m)
-
-        # Run the prediction and output the data
-
-        model = RandomForestRegressor()
-        x_4train = df[chosen_target_x]
-        y_4train = df[chosen_target_y].values.ravel()
-        model.fit(x_4train, y_4train)
-        x_4pred = df[chosen_target_x]
-        y_4pred = model.predict(x_4pred)
-        df_y4pred = pd.DataFrame(y_4pred, columns=[chosen_target_y])
-        df_download = pd.concat([df_test, df_y4pred], axis=1)
-
-        st.subheader("Model Results")
-        st.write(df_download)
-
-
-        @st.cache
-        def convert_df(df1):
-            # IMPORTANT: Cache the conversion to prevent computation on every rerun
-            return df1.to_csv().encode('utf-8')
-
-
-        csv = convert_df(df_download)
-
-        st.download_button(
-            label="Download data as CSV",
-            data=csv,
-            file_name='large_df.csv',
-            mime='text/csv',
+        explainer = lime_tabular.LimeTabularExplainer(
+            training_data=np.array(X_train),
+            feature_names=chosen_target_X,
+            class_names=['churn','no churn'],categorical_features=categorical_features,
+            mode='classification'
         )
 
-    if chosen_class_model == "XGBoost Regression":
-        st.write("XGBoost Regression")
-    if chosen_class_model == "KNN regression":
-        st.write("KNN regression")
+        exp = explainer.explain_instance(
+            data_row=(df_customer[chosen_target_X]).values[0], 
+            predict_fn=model_churn.predict_proba,num_features=5
+        )
 
-if chosen_main_model == "Time Series":
-    chosen_target_x = st.multiselect(label="Choose Independant  variable", options=df.columns)
-    # d= st.selectbox(label = "Choose Dependant  variable", options = df["Total sales"])
-    chosen_target_y = st.selectbox(label="Choose Dependant  variable", options=df.columns)
-    chosen_class_model = st.selectbox('Select the Model', ["SARIMAX", "Prophet", "ARIMA"])
-    if chosen_class_model == "SARIMAX":
-        st.write("SARIMAX")
-    if chosen_class_model == "Prophet":
-        st.write("Prophet")
-    if chosen_class_model == "ARIMA":
-        st.write("ARIMA")
+        df_weights= pd.DataFrame(exp.as_list())
+        df_weights.rename( columns={0:'Factor',1:'Influence'}, inplace=True )
+        df_weights['Influence']=(df_weights['Influence'])*(-1)
+
+        #Visual representaion of factors
+        fig= px.bar(df_weights,
+                            x='Factor', y='Influence',
+                            template="plotly", title="Impact on Customer Churn Probability",width=400, height=400,color_discrete_sequence=['#B2182B'])
+        fig.update_layout( xaxis_title="Factors", yaxis_title="Percentage Contribution to Churn Probability",xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.5)
+        st.plotly_chart(fig) 
+
+    with col9:
+        #Creating rows for upcoming months
+        df_forecast=df_customer.copy()
+        df_forecast = pd.concat([df_forecast]*12, ignore_index=True).copy()
+        
+        #Updating the tenure months column
+        for i in (df_forecast.index):
+            df_forecast.loc[[i],["Tenure Months"]]=(df_forecast.loc[[i],["Tenure Months"]]) + i
+
+        #Predicting churn forecast
+        df_forecast['churn_pobability']=np.nan
+        df_forecast['churn_pobability']=model_churn.predict_proba(df_forecast[chosen_target_X].values)
+
+        #Forecast graph
+        fig_tenure_churn = px.line(df_forecast,
+                            x=df_forecast.index, y="churn_pobability",
+                            template="plotly", title="Churn Probability Forecast",width=400, height=400,
+                            color_discrete_sequence=['#B2182B'])
+        
+        fig_tenure_churn .update_layout(plot_bgcolor='rgba(0,0,0,1)', paper_bgcolor='rgba(0,0,0,1)',xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.5,xaxis_title="Time to Churn(Months)",yaxis_title="Churn Probability")
+        # Change margins
+       
+        st.plotly_chart(fig_tenure_churn, use_container_width=True) 
+        
+
+
+
+
+
+
+
 
 ############################################################################
