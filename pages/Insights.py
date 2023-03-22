@@ -25,6 +25,17 @@ from MyUtils.searchAndSelectFile import selectDataset
 
 hideNavBar()
 
+st.markdown("""
+<style>
+div[data-testid="metric-container"] {
+   background-color: rgba(216, 198, 188, 1);
+   border: 2px solid rgba(32, 48, 84, 1);
+   border-radius: 5px;
+}
+</style>
+"""
+, unsafe_allow_html=True)
+
 col31, col32 = st.columns(2,gap="small")
 with col31: 
     df_train = selectDataset_with_msg("Select your Training dataset")
@@ -169,7 +180,7 @@ if chosen_target_Y != 'Choose an option':
                             x="Importance", y="Feature",
                             template="plotly_white", title="Group Specific Feature Importance",labels={"Feature":"Feature","Importance":"Importance"},width=500, height=300,
                             color_discrete_sequence=['#B2182B'], orientation='h')
-        fig_fi_q.update_layout( xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.5)
+        fig_fi_q.update_layout(title_x=0.5, xaxis=dict(showgrid=False), yaxis=dict(showgrid=False))
         st.plotly_chart(fig_fi_q)
 
     with col26:
@@ -209,7 +220,7 @@ if chosen_target_Y != 'Choose an option':
         fig_pareto = make_subplots(specs=[[{"secondary_y": True}]])
         fig_pareto.add_trace(trace1)
         fig_pareto.add_trace(trace2,secondary_y=True)
-        fig_pareto['layout'].update(height = 300, width = 600, title = "Pareto analysis of Annual Loss",xaxis=dict(tickangle=-90,showgrid=False),template="plotly_white", yaxis=dict(showgrid=False),title_x=0.5)
+        fig_pareto['layout'].update(height = 380, width = 600, title = "Pareto analysis of Annual Loss",xaxis=dict(tickangle=-90,showgrid=False),template="plotly_white", yaxis=dict(showgrid=False),title_x=0.5)
         st.plotly_chart(fig_pareto)    
 
 
