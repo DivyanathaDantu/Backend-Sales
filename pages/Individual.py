@@ -7,7 +7,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import VotingClassifier
 import plotly.express as px
-import lime
 from lime import lime_tabular
 
 
@@ -18,6 +17,16 @@ hideNavBar()
 #df=pd.read_csv('train_data.csv')
 #df_test=pd.read_csv('test data.csv')
 
+st.markdown("""
+<style>
+div[data-testid="metric-container"] {
+   background-color: rgba(216, 198, 188, 1);
+   border: 2px solid rgba(32, 48, 84, 1);
+   border-radius: 5px;
+}
+</style>
+"""
+, unsafe_allow_html=True)
 
 col31, col32 = st.columns(2,gap="small")
 with col31: 
@@ -76,7 +85,7 @@ if chosen_target_Y != 'Choose an option':
     annual_revenue=((df_customer['Monthly Charges'].values)[0])*12
     
 
-    col4, col5, col6, = st.columns(3,gap="small")
+    col4, col5, col6, = st.columns(3,gap="large")
 
     with col4:
         st.metric(
@@ -100,7 +109,7 @@ if chosen_target_Y != 'Choose an option':
     )
         
     
-    col7, col8, col9, = st.columns(3)
+    col7, col8, col9, = st.columns(3,gap="small")
 
     with col7:
         #Churn Probability
@@ -163,10 +172,10 @@ if chosen_target_Y != 'Choose an option':
         #Forecast graph
         fig_tenure_churn = px.line(df_forecast,
                             x=df_forecast.index, y="churn_pobability",
-                            template="plotly", title="Churn Probability Forecast",width=400, height=400,
+                            template="plotly", title="Churn Probability Forecast",width=350, height=400,
                             color_discrete_sequence=['#B2182B'])
         
-        fig_tenure_churn .update_layout(plot_bgcolor='rgba(0,0,0,1)', paper_bgcolor='rgba(0,0,0,1)',xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.5,xaxis_title="Time to Churn(Months)",yaxis_title="Churn Probability")
+        fig_tenure_churn .update_layout(xaxis=dict(showgrid=True), yaxis=dict(showgrid=True),title_x=0.5,xaxis_title="Time to Churn(Months)",yaxis_title="Churn Probability")
         # Change margins
        
         st.plotly_chart(fig_tenure_churn, use_container_width=True) 
