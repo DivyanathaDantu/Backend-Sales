@@ -2,7 +2,7 @@ import streamlit as st
 
 
 def hideNavBar():
-    st.set_page_config(initial_sidebar_state="collapsed")
+    st.set_page_config(initial_sidebar_state="collapsed", page_title="Metriverse", layout="wide", menu_items=None)
 
     st.markdown(""" <style>
     #MainMenu {visibility: hidden;}
