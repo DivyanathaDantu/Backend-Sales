@@ -26,15 +26,20 @@ from MyUtils.searchAndSelectFile import selectDataset
 hideNavBar()
 
 
-df_train = selectDataset_with_msg("Select your Training dataset")
-df_test = selectDataset_with_msg("Select your Test dataset")
+col31, col32 = st.columns(2,gap="small")
+with col31: 
+    df_train = selectDataset_with_msg("Select your Training dataset")
+with col32:
+    df_test = selectDataset_with_msg("Select your Test dataset")
 
-# df_train=pd.read_csv('training_data_insights.csv')
-# df_test=pd.read_csv('test_data_insights.csv')
+#df_train=pd.read_csv('training_data_insights.csv')
+#df_test=pd.read_csv('test_data_insights.csv')
 
-
-chosen_target_X = st.multiselect(label="Choose Independant  variable", options=df_train.columns)
-chosen_target_Y = st.selectbox(label="Choose Dependant  variable",
+col33, col34 = st.columns(2,gap="small")
+with col33:
+    chosen_target_X = st.multiselect(label="Choose Independant  variable", options=df_train.columns)
+with col34:
+    chosen_target_Y = st.selectbox(label="Choose Dependant  variable",
                                    options=(df_train.columns).insert(0, "Choose an option"))
 
 if chosen_target_Y != 'Choose an option':
@@ -99,22 +104,35 @@ if chosen_target_Y != 'Choose an option':
 
         fig_fi = px.bar(df_fi,
                             x="Importance", y="Feature",
-                            template="plotly_white", title="Feature Importance",labels={"Feature":"Feature","Importance":"Importance"},width=300, height=400,
+                            template="plotly_white", title="Feature Importance",labels={"Feature":"Feature","Importance":"Importance"},width=500, height=300,
                             color_discrete_sequence=['#B2182B'], orientation='h')
         fig_fi.update_layout( xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.5)
         st.plotly_chart(fig_fi)
 
-    #with col22:
+    with col22:
             #Top & bottom 3 influencing parameters 
-        #first_influencing_parameter=(df_fi.iloc[[0],[0]].values)[0][0]
-        #second_influencing_parameter=(df_fi.iloc[[1],[0]].values)[0][0]
-        #third_influencing_parameter=(df_fi.iloc[[2],[0]].values)[0][0]
+        first_influencing_parameter=(df_fi.iloc[[0],[0]].values)[0][0]
+        second_influencing_parameter=(df_fi.iloc[[1],[0]].values)[0][0]
+        third_influencing_parameter=(df_fi.iloc[[2],[0]].values)[0][0]
 
-        #least_influencing_parameter=(df_fi.iloc[[-1],[0]].values)[0][0]
-        #secondleast_influencing_parameter=(df_fi.iloc[[-2],[0]].values)[0][0]
-        #thirdleast_influencing_parameter=(df_fi.iloc[[-3],[0]].values)[0][0]    
-                
-        
+        least_influencing_parameter=(df_fi.iloc[[-1],[0]].values)[0][0]
+        secondleast_influencing_parameter=(df_fi.iloc[[-2],[0]].values)[0][0]
+        thirdleast_influencing_parameter=(df_fi.iloc[[-3],[0]].values)[0][0]  
+        col28, col29 = st.columns(2,gap="small")
+        with col28:
+            
+            st.subheader(":green[Top 3 Influencing Parameters]")
+            st.text(first_influencing_parameter)
+            st.text(second_influencing_parameter)
+            st.text(third_influencing_parameter)
+            
+        with col29:
+            st.subheader(":red[Bottom 3 Influencing Parameters]")
+            st.text(least_influencing_parameter)
+            st.text(secondleast_influencing_parameter)
+            st.text(thirdleast_influencing_parameter)
+            
+            
 
     col25, col26 = st.columns(2,gap="small")
     with col25:
@@ -150,7 +168,7 @@ if chosen_target_Y != 'Choose an option':
 
         fig_fi_q = px.bar(df_fi_q,
                             x="Importance", y="Feature",
-                            template="plotly_white", title="Feature Importance",labels={"Feature":"Feature","Importance":"Importance"},width=300, height=400,
+                            template="plotly_white", title="Group Specific Feature Importance",labels={"Feature":"Feature","Importance":"Importance"},width=500, height=300,
                             color_discrete_sequence=['#B2182B'], orientation='h')
         fig_fi_q.update_layout( xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.5)
         st.plotly_chart(fig_fi_q)
@@ -192,7 +210,7 @@ if chosen_target_Y != 'Choose an option':
         fig_pareto = make_subplots(specs=[[{"secondary_y": True}]])
         fig_pareto.add_trace(trace1)
         fig_pareto.add_trace(trace2,secondary_y=True)
-        fig_pareto['layout'].update(height = 400, width = 500, title = "Pareto analysis of Annual Loss",xaxis=dict(tickangle=-90,showgrid=False),template="plotly_white", yaxis=dict(showgrid=False),title_x=0.5)
+        fig_pareto['layout'].update(height = 300, width = 600, title = "Pareto analysis of Annual Loss",xaxis=dict(tickangle=-90,showgrid=False),template="plotly_white", yaxis=dict(showgrid=False),title_x=0.5)
         st.plotly_chart(fig_pareto)    
 
 
@@ -204,41 +222,4 @@ if chosen_target_Y != 'Choose an option':
 
 
     
-    #Filtering customers with churn rate higher than 0.5
-    df_test_3=df_test_2.copy()
-    df_test_3 = df_test_2[df_test_2['churn_probability'] > 0.5]
-
-    #Copying only customerid and monthly charges
-    df_test_4=df_test_3[['CustomerID','Monthly Charges']].copy()
-    #Sorting the dataaccording to monthly charges
-    df_test_4=(df_test_4.sort_values(by='Monthly Charges' , ascending=False).reset_index(drop=True)).copy()
-    #Calculating Prospective annual revenue loss
-    df_test_4['Annual Revenue Loss']= df_test_4['Monthly Charges']*12
-
-    #Cumulative values
-    cumulative_sum=df_test_4['Annual Revenue Loss'].cumsum()
-    total = df_test_4['Annual Revenue Loss'].sum()
-    percentage = cumulative_sum / total * 100
-
-    #Visual representaion of revenue loss with customer id
-    trace1 = go.Bar(
-        x=df_test_4['CustomerID'],
-        y=df_test_4['Annual Revenue Loss'],
-        marker=dict(
-            color='rgb(34,163,192)'
-                ),
-        name='Potential Annual Loss'
-    )
-    trace2 = go.Scatter(
-        x=df_test_4['CustomerID'],
-        y=percentage,
-        name='Cumulative Percentage',
-        yaxis='y2'
-
-    )
-
-    fig_pareto = make_subplots(specs=[[{"secondary_y": True}]])
-    fig_pareto.add_trace(trace1)
-    fig_pareto.add_trace(trace2,secondary_y=True)
-    fig_pareto['layout'].update(height = 600, width = 800, title = "Pareto analysis of Annual Loss",xaxis=dict(tickangle=-90,showgrid=False),template="plotly_white", yaxis=dict(showgrid=False),title_x=0.5)
-    fig_pareto
+   
