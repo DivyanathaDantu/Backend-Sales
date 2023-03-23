@@ -13,8 +13,16 @@ from MyUtils.Metrics import displayMetrics
 from MyUtils.searchAndSelectFile import selectDataset
 
 hideNavBar()
-
-
+st.markdown("""
+<style>
+div[data-testid="metric-container"] {
+   background-color: rgba(216, 198, 188, 1);
+   border: 2px solid rgba(32, 48, 84, 1);
+   border-radius: 5px;
+}
+</style>
+"""
+, unsafe_allow_html=True)
 
 df = selectDataset()
 
