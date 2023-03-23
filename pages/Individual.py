@@ -34,12 +34,14 @@ with col31:
 with col32:
     df_test = selectDataset_with_msg("Select your Test dataset")
 
-col33, col34 = st.columns(2,gap="small")
+col33, col34, col40 = st.columns(3,gap="small")
 with col33:
     chosen_target_X = st.multiselect(label="Choose Independant  variable", options=df_train.columns)
 with col34:
     chosen_target_Y = st.selectbox(label="Choose Dependant  variable",
                                    options=(df_train.columns).insert(0, "Choose an option"))
+with col40:
+    customer_id = st.selectbox(label="Choose Customer ID",options=(df_test.CustomerID.unique()))
 
 if chosen_target_Y != 'Choose an option':
     #input  parameters
@@ -72,9 +74,10 @@ if chosen_target_Y != 'Choose an option':
     churn_probability_predictions=model_churn.predict_proba((df_churn[chosen_target_X]).values)
     df_churn['churn_probability']=churn_probability_predictions
 
+
     #Filtering  dataframe based on customer ID
-    queryvariablevalue="0002-ORFBO"
-    condition = (df_churn['CustomerID'] == queryvariablevalue) 
+    
+    condition = (df_churn['CustomerID'] == customer_id) 
     df_customer=(df_churn[condition]).copy().reset_index(drop=True)
 
     #tile 1 - Tenure
@@ -82,28 +85,28 @@ if chosen_target_Y != 'Choose an option':
     #tile 1 - City
     city=(df_customer['City'].values)[0]
     #tile 1 - Annual Revenue
-    annual_revenue=((df_customer['Monthly Charges'].values)[0])*12
+    annual_revenue=round(((df_customer['Monthly Charges'].values)[0])*12,2)
     
 
     col4, col5, col6, = st.columns(3,gap="large")
 
     with col4:
         st.metric(
-        label="Tenure of Customer",
+        label="Customer Tenure (Months)",
         value=tenure,
         
     )
 
     with col5:
         st.metric(
-        label="City of Customer",
+        label="Customer City",
         value=city,
         
     )
 
     with col6:
         st.metric(
-        label="Revenue Generated of Customer Annualy",
+        label="Annual Revenue from Customer",
         value=annual_revenue,
         
     )
@@ -124,11 +127,11 @@ if chosen_target_Y != 'Choose an option':
 
         fig_prob= px.pie(df_prob,
                             names='Outcome', values='Probability',
-                            template="plotly", title="Customer Churn Probability",width=400, height=400,color='Outcome',color_discrete_sequence=px.colors.sequential.RdBu)
-        fig_prob.update_layout( xaxis_title="Factors", yaxis_title="Percentage Contribution to Churn Probability",xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.5)
+                            template="plotly", title="Customer Churn Risk",width=400, height=400,color='Outcome',color_discrete_sequence=px.colors.sequential.RdBu)
+        fig_prob.update_layout( xaxis_title="Factors", yaxis_title="Percentage Contribution to Churn Probability",xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.3)
         st.plotly_chart(fig_prob) 
 
-    with col8:
+    with col9:
         #LIME
         categorical_features = [i for i, col in enumerate(X_train)
                                 if ((X_train.iloc[[0],[i]].values)[0][0]) <= 1] 
@@ -152,14 +155,14 @@ if chosen_target_Y != 'Choose an option':
         #Visual representaion of factors
         fig= px.bar(df_weights,
                             x='Factor', y='Influence',
-                            template="plotly", title="Impact on Customer Churn Probability",width=400, height=400,color_discrete_sequence=['#B2182B'])
-        fig.update_layout( xaxis_title="Factors", yaxis_title="Percentage Contribution to Churn Probability",xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.5)
+                            template="plotly", title="Impact on Customer Churn",width=400, height=400,color_discrete_sequence=['#B2182B'])
+        fig.update_layout( xaxis_title="Factors", yaxis_title="Percentage Contribution to Churn Probability",xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.2)
         st.plotly_chart(fig) 
 
-    with col9:
+    with col8:
         #Creating rows for upcoming months
         df_forecast=df_customer.copy()
-        df_forecast = pd.concat([df_forecast]*12, ignore_index=True).copy()
+        df_forecast = pd.concat([df_forecast]*6, ignore_index=True).copy()
         
         #Updating the tenure months column
         for i in (df_forecast.index):
@@ -172,10 +175,10 @@ if chosen_target_Y != 'Choose an option':
         #Forecast graph
         fig_tenure_churn = px.line(df_forecast,
                             x=df_forecast.index, y="churn_pobability",
-                            template="plotly", title="Churn Probability Forecast",width=350, height=400,
+                            template="plotly", title="Churn Risk Forecast",width=400, height=400,
                             color_discrete_sequence=['#B2182B'])
         
-        fig_tenure_churn .update_layout(xaxis=dict(showgrid=True), yaxis=dict(showgrid=True),title_x=0.5,xaxis_title="Time to Churn(Months)",yaxis_title="Churn Probability")
+        fig_tenure_churn .update_layout(xaxis=dict(showgrid=True), yaxis=dict(showgrid=True),title_x=0.3,xaxis_title="Time to Churn(Months)",yaxis_title="Churn Probability")
         # Change margins
        
         st.plotly_chart(fig_tenure_churn, use_container_width=True) 

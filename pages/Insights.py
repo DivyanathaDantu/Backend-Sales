@@ -1,9 +1,11 @@
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.express as px
 import seaborn as sns
 import streamlit as st
 import numpy as np
+#import hydralit_components as hc
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
@@ -52,6 +54,8 @@ with col34:
     chosen_target_Y = st.selectbox(label="Choose Dependant  variable",
                                    options=(df_train.columns).insert(0, "Choose an option"))
 
+    
+
 if chosen_target_Y != 'Choose an option':
     #Training the model
     #Define the ensemble model
@@ -73,7 +77,7 @@ if chosen_target_Y != 'Choose an option':
     df_risky_customers=(df_churn[df_churn['churn_probability']>0.50])
     total_risky_customers=len(df_risky_customers.index)
     #Tile 3  Overall loss
-    overall_annual_loss=(df_risky_customers['Monthly Charges'].sum())*12
+    overall_annual_loss=round(((df_risky_customers['Monthly Charges'].sum())*12),2)
     col4, col5, col6, = st.columns(3,gap="small")
 
     with col4:
@@ -85,18 +89,56 @@ if chosen_target_Y != 'Choose an option':
 
     with col5:
         st.metric(
-        label="Customers at the risk of Churn",
+        label="Potential Customer Churn",
         value=total_risky_customers,
         
     )
 
     with col6:
         st.metric(
-        label="Potential Annual loss due to Customer Churn",
+        label="Potential Revenue Loss",
         value=overall_annual_loss,
         
     )
-    
+    #Filtering customers with churn rate higher than 0.5
+    df_pareto = df_churn[df_churn['churn_probability'] > 0.5]
+
+    #Sorting the dataaccording to monthly charges
+    df_pareto=(df_pareto.sort_values(by='Monthly Charges' , ascending=False).reset_index(drop=True)).copy()
+    #Calculating Prospective annual revenue loss
+    df_pareto['Annual Revenue Loss']= df_pareto['Monthly Charges']*12
+
+    #Cumulative values
+    cumulative_sum=df_pareto['Annual Revenue Loss'].cumsum()
+    total = df_pareto['Annual Revenue Loss'].sum()
+    percentage = cumulative_sum / total * 100
+
+    #Visual representaion of revenue loss with customer id
+    trace1 = go.Bar(
+        x=df_pareto['CustomerID'],
+        y=df_pareto['Annual Revenue Loss'],
+        marker=dict(
+            color='rgb(178,24,43)'
+                ),
+        name='Potential Annual Loss'
+    )
+    trace2 = go.Scatter(
+        x=df_pareto['CustomerID'],
+        y=percentage,
+        marker=dict(
+        color='rgb(255,255,0)'
+                ),
+        name='Cumulative Percentage',
+        yaxis='y2'
+
+    )
+
+    fig_pareto = make_subplots(specs=[[{"secondary_y": True}]])
+    fig_pareto.add_trace(trace1)
+    fig_pareto.add_trace(trace2,secondary_y=True)
+    fig_pareto['layout'].update(height = 450, width = 1300, title = "Pareto analysis of Annual Loss",xaxis=dict(tickangle=-90,showgrid=False),template="plotly_white", yaxis=dict(showgrid=False),title_x=0.4)
+    st.plotly_chart(fig_pareto)
+
     #Graph 1 -  Overall feature importance
     col21, col22 = st.columns(2,gap="small")
     with col21:
@@ -110,13 +152,13 @@ if chosen_target_Y != 'Choose an option':
         fi=[X_list,r_list]
         df_fi=pd.DataFrame (fi).transpose()
         df_fi.columns = ['Feature', 'Importance']
-        df_fi=(df_fi.sort_values(by='Importance',ascending=True).reset_index(drop=True)).copy()
+        df_fi=(df_fi.sort_values(by='Importance',ascending=False).reset_index(drop=True)).copy()
 
         fig_fi = px.bar(df_fi,
-                            x="Importance", y="Feature",
-                            template="plotly_white", title="Feature Importance",labels={"Feature":"Feature","Importance":"Importance"},width=500, height=300,
-                            color_discrete_sequence=['#B2182B'], orientation='h')
-        fig_fi.update_layout( xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.5)
+                            y="Importance", x="Feature",
+                            template="plotly_white", title="Reasons for Churn",labels={"Feature":"Feature","Importance":"Importance"},width=500, height=300,
+                            color_discrete_sequence=['#B2182B'], orientation='v')
+        fig_fi.update_layout( xaxis=dict(showgrid=False), yaxis=dict(showgrid=False),title_x=0.4)
         st.plotly_chart(fig_fi)
 
     with col22:
@@ -131,13 +173,14 @@ if chosen_target_Y != 'Choose an option':
         col28, col29 = st.columns(2,gap="small")
         with col28:
             
-            st.subheader(":green[Top 3 Influencing Parameters]")
+            st.subheader(":green[Top Churn Triggers]")
+            #hc.info_card(title='Some heading GOOD', content=first_influencing_parameter, sentiment='good')
             st.text(first_influencing_parameter)
             st.text(second_influencing_parameter)
             st.text(third_influencing_parameter)
             
         with col29:
-            st.subheader(":red[Bottom 3 Influencing Parameters]")
+            st.subheader(":red[Bottom Churn Triggers]")
             st.text(least_influencing_parameter)
             st.text(secondleast_influencing_parameter)
             st.text(thirdleast_influencing_parameter)
@@ -153,75 +196,63 @@ if chosen_target_Y != 'Choose an option':
         #st.text("")
         #st.text("")
         with col23:
-            query_variable=st.selectbox(label="Choose Query Variable", options=df_train.columns)
-        with col24:
-            query_variable_value=st.selectbox(label="Choose Query Value", options=df_train[query_variable].unique())
-        #Querying the dataset
-        condition = (df_train[query_variable] == query_variable_value) 
-        df_queried=(df_train[condition]).copy().reset_index(drop=True)
+            query_variable=st.selectbox(label="Group Category", options=df_train.columns.insert(0, "Choose an option"))
+            if query_variable!="Choose an option":
+                with col24:
+                    query_variable_value=st.selectbox(label="Category Value", 
+                                                    options=df_train[query_variable].unique())
+                #Querying the dataset
+                if query_variable==df_train.columns[0]:
+                    df_queried=df_train.copy()
+                else:    
+                    condition = (df_train[query_variable] == query_variable_value) 
+                    df_queried=(df_train[condition]).copy().reset_index(drop=True)
 
-        #loading the input data into the variables
-        X_q=df_queried[chosen_target_X]
-        Y_q=df_queried[chosen_target_Y]
-        model_churn.fit(X_q.values,Y_q.values.ravel())
+                    #loading the input data into the variables
+                    X_q=df_queried[chosen_target_X]
+                    Y_q=df_queried[chosen_target_Y]
+                    model_churn.fit(X_q.values,Y_q.values.ravel())
 
-        fi_q = permutation_importance(model_churn,X_q.values,Y_q.values.ravel(), n_repeats=1,random_state=0)
+                    fi_q = permutation_importance(model_churn,X_q.values,Y_q.values.ravel(), n_repeats=1,random_state=0)
 
-        r_list_q=list(fi_q.importances_mean)
-        X_list_q=list(X_q.columns)
+                    r_list_q=list(fi_q.importances_mean)
+                    X_list_q=list(X_q.columns)
 
 
-        fi_q=[X_list_q,r_list_q]
-        df_fi_q=pd.DataFrame (fi_q).transpose()
-        df_fi_q.columns = ['Feature', 'Importance']
-        df_fi_q=(df_fi_q.sort_values(by='Importance',ascending=True).reset_index(drop=True)).copy()
+                    fi_q=[X_list_q,r_list_q]
+                    df_fi_q=pd.DataFrame (fi_q).transpose()
+                    df_fi_q.columns = ['Feature', 'Importance']
+                    df_fi_q=(df_fi_q.sort_values(by='Importance',ascending=False).reset_index(drop=True)).copy()
 
-        fig_fi_q = px.bar(df_fi_q,
-                            x="Importance", y="Feature",
-                            template="plotly_white", title="Group Specific Feature Importance",labels={"Feature":"Feature","Importance":"Importance"},width=500, height=300,
-                            color_discrete_sequence=['#B2182B'], orientation='h')
-        fig_fi_q.update_layout(title_x=0.5, xaxis=dict(showgrid=False), yaxis=dict(showgrid=False))
-        st.plotly_chart(fig_fi_q)
+                    fig_fi_q = px.bar(df_fi_q,
+                                        y="Importance", x="Feature",
+                                        template="plotly_white", title="Reasons for Chrun - Group Specific",labels={"Feature":"Feature","Importance":"Importance"},width=500, height=300,
+                                        color_discrete_sequence=['#B2182B'], orientation='v')
+                    fig_fi_q.update_layout(title_x=0.2, xaxis=dict(showgrid=False), yaxis=dict(showgrid=False))
+                    st.plotly_chart(fig_fi_q)
 
-    with col26:
-        #Filtering customers with churn rate higher than 0.5
-        df_pareto = df_churn[df_churn['churn_probability'] > 0.5]
+                    with col26:
+                            #Top & bottom 3 influencing parameters 
+                        first_influencing_parameter=(df_fi_q.iloc[[0],[0]].values)[0][0]
+                        second_influencing_parameter=(df_fi_q.iloc[[1],[0]].values)[0][0]
+                        third_influencing_parameter=(df_fi_q.iloc[[2],[0]].values)[0][0]
 
-        #Sorting the dataaccording to monthly charges
-        df_pareto=(df_pareto.sort_values(by='Monthly Charges' , ascending=False).reset_index(drop=True)).copy()
-        #Calculating Prospective annual revenue loss
-        df_pareto['Annual Revenue Loss']= df_pareto['Monthly Charges']*12
-
-        #Cumulative values
-        cumulative_sum=df_pareto['Annual Revenue Loss'].cumsum()
-        total = df_pareto['Annual Revenue Loss'].sum()
-        percentage = cumulative_sum / total * 100
-
-        #Visual representaion of revenue loss with customer id
-        trace1 = go.Bar(
-            x=df_pareto['CustomerID'],
-            y=df_pareto['Annual Revenue Loss'],
-            marker=dict(
-                color='rgb(178,24,43)'
-                    ),
-            name='Potential Annual Loss'
-        )
-        trace2 = go.Scatter(
-            x=df_pareto['CustomerID'],
-            y=percentage,
-            marker=dict(
-            color='rgb(255,255,0)'
-                    ),
-            name='Cumulative Percentage',
-            yaxis='y2'
-
-        )
-
-        fig_pareto = make_subplots(specs=[[{"secondary_y": True}]])
-        fig_pareto.add_trace(trace1)
-        fig_pareto.add_trace(trace2,secondary_y=True)
-        fig_pareto['layout'].update(height = 380, width = 600, title = "Pareto analysis of Annual Loss",xaxis=dict(tickangle=-90,showgrid=False),template="plotly_white", yaxis=dict(showgrid=False),title_x=0.5)
-        st.plotly_chart(fig_pareto)    
+                        least_influencing_parameter=(df_fi_q.iloc[[-1],[0]].values)[0][0]
+                        secondleast_influencing_parameter=(df_fi_q.iloc[[-2],[0]].values)[0][0]
+                        thirdleast_influencing_parameter=(df_fi_q.iloc[[-3],[0]].values)[0][0]  
+                        col35, col36 = st.columns(2,gap="small")
+                        with col35:
+                            
+                            st.subheader(":green[Top Churn Triggers - Group specific]")
+                            st.text(first_influencing_parameter)
+                            st.text(second_influencing_parameter)
+                            st.text(third_influencing_parameter)
+                            
+                        with col36:
+                            st.subheader(":red[Bottom Churn Triggers - Group Specific]")
+                            st.text(least_influencing_parameter)
+                            st.text(secondleast_influencing_parameter)
+                            st.text(thirdleast_influencing_parameter)   
 
 
 
