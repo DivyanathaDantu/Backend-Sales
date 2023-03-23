@@ -41,7 +41,8 @@ with col34:
     chosen_target_Y = st.selectbox(label="Choose Dependant  variable",
                                    options=(df_train.columns).insert(0, "Choose an option"))
 with col40:
-    customer_id = st.selectbox(label="Choose Customer ID",options=(df_test.CustomerID.unique()))
+    if chosen_target_Y != 'Choose an option':
+        customer_id = st.selectbox(label="Choose Customer ID",options=(df_test.CustomerID.unique()))
 
 if chosen_target_Y != 'Choose an option':
     #input  parameters
@@ -175,19 +176,11 @@ if chosen_target_Y != 'Choose an option':
         #Forecast graph
         fig_tenure_churn = px.line(df_forecast,
                             x=df_forecast.index, y="churn_pobability",
-
                             template="plotly", title="Churn Risk Forecast",width=400, height=400,
                             color_discrete_sequence=['#B2182B'])
         
-        fig_tenure_churn .update_layout(xaxis=dict(showgrid=True), yaxis=dict(showgrid=True),title_x=0.3,xaxis_title="Time to Churn(Months)",yaxis_title="Churn Probability")
-
-                            template="plotly", title="Churn Probability Forecast",width=350, height=400,
-                            color_discrete_sequence=['#B2182B'])
-        
-        fig_tenure_churn .update_layout(xaxis=dict(showgrid=True), yaxis=dict(showgrid=True),title_x=0.5,xaxis_title="Time to Churn(Months)",yaxis_title="Churn Probability")
-        # Change margins
-       
-        st.plotly_chart(fig_tenure_churn, use_container_width=True) 
+        fig_tenure_churn.update_layout(xaxis=dict(showgrid=True), yaxis=dict(showgrid=True),title_x=0.3,xaxis_title="Time to Churn(Months)",yaxis_title="Churn Probability")                 
+        st.plotly_chart(fig_tenure_churn) 
         
 
 
