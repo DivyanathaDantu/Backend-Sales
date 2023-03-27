@@ -16,6 +16,7 @@ def hideNavBar():
    padding: 5% 5% 5% 10%;
    border-radius: 5px;
    overflow-wrap: break-word;
+   text-align: center
 }
 
 div.plot-container.plotly {
@@ -28,4 +29,7 @@ div[data-testid="metric-container"] > label[data-testid="stMetricLabel"] > div {
    overflow-wrap: break-word;
    white-space: break-spaces;
 }
+div[data-testid="metric-container"] > label[data-testid="stMetricLabel"] {
+   grid-template-columns: auto !important;
+   }
     </style> """, unsafe_allow_html=True)
