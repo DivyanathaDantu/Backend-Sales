@@ -105,7 +105,7 @@ with col9:
     filtered_df_subcategory=filtered_df.groupby('Sub Category').agg({'Quantity':sum}).reset_index()
     fig_filtered_df_subcategory = px.bar(filtered_df_subcategory,
                         y="Sub Category", x="Quantity",
-                        template="plotly_white", title="Sub Category wise Customers",width=600, height=400,color_discrete_sequence=['#B2182B'],orientation='h')
+                        template="plotly_white", title="Order Distribution across Sub-Categories ",width=600, height=400,color_discrete_sequence=['#B2182B'],orientation='h')
     fig_filtered_df_subcategory.update_layout(xaxis={'categoryorder': 'total ascending'})
     fig_filtered_df_subcategory .update_layout(title_x=0.3,xaxis=dict(showgrid=False),yaxis=dict(showgrid=False))
     st.plotly_chart(fig_filtered_df_subcategory)
@@ -115,7 +115,7 @@ with col10:
     filtered_df_rating=filtered_df.groupby('Category').agg({'Rating':mean}).reset_index()
     fig_filtered_df_rating = px.bar(filtered_df_rating,
                         x="Category", y="Rating",
-                        template="plotly_white", title="Category wise Ratings",width=600, height=400,color_discrete_sequence=['#B2182B'])
+                        template="plotly_white", title="Rating distribution across Categories",width=600, height=400,color_discrete_sequence=['#B2182B'])
     fig_filtered_df_rating .update_layout(title_x=0.3,xaxis=dict(showgrid=False), yaxis=dict(showgrid=False))
     fig_filtered_df_rating.update_yaxes(range=[3.5, 5])  
     st.plotly_chart(fig_filtered_df_rating)

@@ -34,9 +34,11 @@ with col31:
 with col32:
     df_test = selectDataset_with_msg("Select your Test dataset")
 
-col33, col34, col40 = st.columns(3,gap="small")
+col33, col45, col34, col40 = st.columns(4,gap="small")
 with col33:
-    chosen_target_X = st.multiselect(label="Choose Independant  variable", options=df_train.columns)
+    chosen_target_X_continous = st.multiselect(label="Choose Continuous Independant  variable", options=df_train.columns)
+with col45:
+    chosen_target_X_categorical = st.multiselect(label="Choose Categorical Independant  variable", options=df_train.columns)
 with col34:
     chosen_target_Y = st.selectbox(label="Choose Dependant  variable",
                                    options=(df_train.columns).insert(0, "Choose an option"))
@@ -46,34 +48,36 @@ with col40:
 
 if chosen_target_Y != 'Choose an option':
     #input  parameters
+    #input  parameters from user
     chosen_target_Y=['Churn Value']
-    chosen_target_X=['Tenure Months',
-            'Phone Service',
-    'Multiple Lines',
-    'Internet Service',
-    'Online Security',
-    'Online Backup',
-    'Device Protection',
-    'Tech Support',
-    'Streaming TV',
-    'Streaming Movies',
-    'Contract',
-    'Paperless Billing',
-    'Payment Method',
-    'Monthly Charges']
+    chosen_target_X_continous=['Tenure Months','Monthly Charges']
+    chosen_target_X_categorical=['Partner','Dependents','Phone Service','Multiple Lines','Internet Service','Online Security',
+                                'Online Backup','Device Protection']
 
     #Define the ensemble model
     model_churn=VotingClassifier(estimators=[('LR', LogisticRegression(max_iter=1000)), ('RF', RandomForestClassifier()), ('GB', GradientBoostingClassifier())],
                             voting='soft')
-    X_train=df_train[chosen_target_X]
+    #Preparing the independant variables after one hot encoding
+    X_train=pd.concat([df_train[chosen_target_X_continous],df_train[chosen_target_X_categorical]],axis=1)
+    X_train=pd.get_dummies(X_train, columns =chosen_target_X_categorical,drop_first='True')
+
+    #Dependant variable
     Y_train=df_train[chosen_target_Y]
+
+    #Training the model
     model_churn.fit(X_train.values,Y_train.values.ravel())
 
-    #Predicting churn probability
-    df_churn=df_test.copy()
+    #Model prediction
+    #Preparing the independant variables after one hot encoding
+    X_test=pd.concat([df_test[chosen_target_X_continous],df_test[chosen_target_X_categorical]],axis=1)
+    X_test=pd.get_dummies(X_test, columns=chosen_target_X_categorical,drop_first='True')
+    churn_probability_predictions=model_churn.predict_proba(X_test.values)
+    churn_probability_predictions=churn_probability_predictions[:,1]
+
+    df_churn=pd.concat((df_test[['CustomerID','City']],X_test),axis=1)
     df_churn['churn_probability']=np.nan
-    churn_probability_predictions=model_churn.predict_proba((df_churn[chosen_target_X]).values)
     df_churn['churn_probability']=churn_probability_predictions
+
 
 
     #Filtering  dataframe based on customer ID
@@ -83,9 +87,9 @@ if chosen_target_Y != 'Choose an option':
 
     #tile 1 - Tenure
     tenure=(df_customer['Tenure Months'].values)[0]
-    #tile 1 - City
+    #tile 2 - City
     city=(df_customer['City'].values)[0]
-    #tile 1 - Annual Revenue
+    #tile 3 - Annual Revenue
     annual_revenue=round(((df_customer['Monthly Charges'].values)[0])*12,2)
     
 
@@ -120,7 +124,7 @@ if chosen_target_Y != 'Choose an option':
         churn_prob=(df_customer['churn_probability'].values)[0]
         no_churn_prob=(1-churn_prob)
 
-        column=['Churn','Will Nor Churn']
+        column=['Churn','Will Not Churn']
         prob=[churn_prob,no_churn_prob]
 
         prob_dict={'Outcome':column,'Probability':prob}
@@ -139,19 +143,19 @@ if chosen_target_Y != 'Choose an option':
 
         explainer = lime_tabular.LimeTabularExplainer(
             training_data=np.array(X_train),
-            feature_names=chosen_target_X,
-            class_names=['churn','no churn'],categorical_features=categorical_features,
+            feature_names=X_train.columns,
+            categorical_features=categorical_features,
             mode='classification'
         )
 
         exp = explainer.explain_instance(
-            data_row=(df_customer[chosen_target_X]).values[0], 
+            data_row=(df_customer[X_test.columns]).values[0], 
             predict_fn=model_churn.predict_proba,num_features=5
         )
 
         df_weights= pd.DataFrame(exp.as_list())
-        df_weights.rename( columns={0:'Factor',1:'Influence'}, inplace=True )
-        df_weights['Influence']=(df_weights['Influence'])*(-1)
+        df_weights= pd.DataFrame(exp.as_list())
+        df_weights.rename( columns={0:'Factor',1:'Influence'}, inplace=True)
 
         #Visual representaion of factors
         fig= px.bar(df_weights,
@@ -171,7 +175,7 @@ if chosen_target_Y != 'Choose an option':
 
         #Predicting churn forecast
         df_forecast['churn_pobability']=np.nan
-        df_forecast['churn_pobability']=model_churn.predict_proba(df_forecast[chosen_target_X].values)
+        df_forecast['churn_pobability']=model_churn.predict_proba(df_forecast[X_test.columns].values)[:,1]
 
         #Forecast graph
         fig_tenure_churn = px.line(df_forecast,

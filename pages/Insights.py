@@ -24,6 +24,7 @@ from plotly.subplots import make_subplots
 from MyUtils.HideStDefaults import hideNavBar
 from MyUtils.Metrics import displayMetrics
 from MyUtils.searchAndSelectFile import selectDataset
+from sklearn.model_selection import cross_validate
 
 hideNavBar()
 
@@ -41,16 +42,18 @@ div[data-testid="metric-container"] {
 
 col31, col32 = st.columns(2,gap="small")
 with col31: 
-    df_train = selectDataset_with_msg("Select your Training dataset")
+    df_train = selectDataset_with_msg("Select your Training dataset")    
 with col32:
     df_test = selectDataset_with_msg("Select your Test dataset")
 
 #df_train=pd.read_csv('training_data_insights.csv')
 #df_test=pd.read_csv('test_data_insights.csv')
 
-col33, col34 = st.columns(2,gap="small")
+col33, col45, col34 = st.columns(3,gap="small")
 with col33:
-    chosen_target_X = st.multiselect(label="Choose Independant  variable", options=df_train.columns)
+    chosen_target_X_continous = st.multiselect(label="Choose Continuous Independant  variable", options=df_train.columns)
+with col45:
+    chosen_target_X_categorical = st.multiselect(label="Choose Categorical Independant  variable", options=df_train.columns)
 with col34:
     chosen_target_Y = st.selectbox(label="Choose Dependant  variable",
                                    options=(df_train.columns).insert(0, "Choose an option"))
@@ -58,19 +61,70 @@ with col34:
     
 
 if chosen_target_Y != 'Choose an option':
-    #Training the model
+    #Model training
     #Define the ensemble model
     model_churn=VotingClassifier(estimators=[('LR', LogisticRegression(max_iter=1000)), ('RF', RandomForestClassifier()), ('GB', GradientBoostingClassifier())],
                             voting='soft')
-    X_train=df_train[chosen_target_X]
+    #Preparing the independant variables after one hot encoding
+    X_train=pd.concat([df_train[chosen_target_X_continous],df_train[chosen_target_X_categorical]],axis=1)
+    X_train=pd.get_dummies(X_train, columns =chosen_target_X_categorical,drop_first='True')
+
+    #Dependant variable
     Y_train=df_train[chosen_target_Y]
+
+    #Training the model
     model_churn.fit(X_train.values,Y_train.values.ravel())
 
-   #Predicting churn probability
-    df_churn=df_test.copy()
+   #Model prediction
+    #Preparing the independant variables after one hot encoding
+    X_test=pd.concat([df_test[chosen_target_X_continous],df_test[chosen_target_X_categorical]],axis=1)
+    X_test=pd.get_dummies(X_test, columns=chosen_target_X_categorical,drop_first='True')
+    churn_probability_predictions=model_churn.predict_proba(X_test.values)
+    churn_probability_predictions=churn_probability_predictions[:,1]
+
+    df_churn=pd.concat((df_test[['CustomerID']],X_test),axis=1)
     df_churn['churn_probability']=np.nan
-    churn_probability_predictions=model_churn.predict_proba((df_churn[chosen_target_X]).values)
     df_churn['churn_probability']=churn_probability_predictions
+    
+    #Metrics
+    metrics = cross_validate(
+    estimator=model_churn, X=X_train.values, y=Y_train.values.ravel(), cv=5, 
+    scoring=['accuracy','precision', 'recall','f1'])
+    #tile A
+    accuracy=round((metrics['test_accuracy'].mean())*100,2)
+    #tile B
+    precision=round((metrics['test_precision'].mean())*100,2)
+    #tile 3
+    recall=round((metrics['test_recall'].mean())*100,2)
+    #tile 4
+    f1=round((metrics['test_f1'].mean())*100,2)
+    col54, col55, col56, col57 = st.columns(4,gap="small") 
+
+    with col54:
+        st.metric(
+        label="Accuracy",
+        value=accuracy,
+    )
+
+    with col55:
+        st.metric(
+        label="Precision",
+        value=precision,   
+    )
+        
+    with col56:
+        st.metric(
+             label="Recall",
+             value=recall,
+    )
+    with col57:
+        st.metric(
+             label="F1",
+             value=f1,
+    )     
+
+    
+    
     
     #Tile  1 - Total  active customers
     total_active_customers=len(df_test.index)
@@ -210,7 +264,9 @@ if chosen_target_Y != 'Choose an option':
                     df_queried=(df_train[condition]).copy().reset_index(drop=True)
 
                     #loading the input data into the variables
-                    X_q=df_queried[chosen_target_X]
+                    #Preparing the independant variables after one hot encoding
+                    X_q=pd.concat([df_queried[chosen_target_X_continous],df_queried[chosen_target_X_categorical]],axis=1)
+                    X_q=pd.get_dummies(X_q, columns =chosen_target_X_categorical,drop_first='True')
                     Y_q=df_queried[chosen_target_Y]
                     model_churn.fit(X_q.values,Y_q.values.ravel())
 
